@@ -1,0 +1,67 @@
+
+name: Build Jev Jarvis TrollStore IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Build iOS app and keyboard
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project JevJarvis.xcodeproj \
+            -scheme JevJarvis \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Verify app and keyboard extension
+        run: |
+          set -e
+          APP="build/Build/Products/Release-iphoneos/JevJarvis.app"
+          test -d "$APP" || {
+            echo "ERROR: Main app was not built"
+            exit 1
+          }
+          test -d "$APP/PlugIns/JevKeyboard.appex" || {
+            echo "ERROR: Keyboard extension is missing"
+            find build -name '*.appex' -print
+            exit 1
+          }
+          echo "Main app and keyboard extension found."
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \
+            "$APP/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \
+            "$APP/PlugIns/JevKeyboard.appex/Info.plist"
+
+      - name: Package IPA
+        run: |
+          set -e
+          mkdir -p package/Payload
+          cp -R \
+            build/Build/Products/Release-iphoneos/JevJarvis.app \
+            package/Payload/
+          cd package
+          /usr/bin/zip -qry ../JevJarvis-TrollStore.ipa Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: JevJarvis-TrollStore-IPA
+          path: JevJarvis-TrollStore.ipa
+          if-no-files-found: error
+          retention-days: 7
