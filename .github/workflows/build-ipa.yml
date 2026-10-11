@@ -12,7 +12,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout source
-        uses: actions/upload-artifact@v4
+        uses: actions/checkout@v5
 
       - name: Build iOS app and keyboard
         run: |
@@ -59,7 +59,7 @@ jobs:
           /usr/bin/zip -qry ../JevJarvis-TrollStore.ipa Payload
 
       - name: Upload IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: JevJarvis-TrollStore-IPA
           path: JevJarvis-TrollStore.ipa
